@@ -1,19 +1,24 @@
 #!/bin/bash
 
+# Function to add color
+colorize() {
+  echo -e "\033[$1m$2\033[0m"
+}
+
 # Prompt to change directory
-read -p "Enter the directory where the script should run: " target_dir
+read -p "$(colorize '1;34' 'Enter the directory where the script should run: ')" target_dir
 if [ ! -d "$target_dir" ]; then
   mkdir -p "$target_dir"
-  echo "Directory $target_dir created."
+  colorize '1;32' "Directory $target_dir created."
 fi
 
-cd "$target_dir" || { echo "Failed to change to directory $target_dir. Exiting."; exit 1; }
+cd "$target_dir" || { colorize '1;31' "Failed to change to directory $target_dir. Exiting."; exit 1; }
 
 # Initialize git repository if not already initialized
 if [ ! -d ".git" ]; then
   git init
   git commit --allow-empty -m "modules: Initial empty repository"
-  echo "Initialized empty git repository and made initial commit."
+  colorize '1;32' "Initialized empty git repository and made initial commit."
 fi
 
 # Function to get the latest tag from a remote repository
@@ -35,33 +40,40 @@ add_or_update_remote() {
     if [ "$existing_url" != "$url" ]; then
       git remote remove $prefix
       git remote add $prefix $url
-      echo "Updated remote $prefix to $url"
+      colorize '1;33' "Updated remote $prefix to $url"
     else
-      echo "Remote $prefix with URL $url already exists, skipping."
+      colorize '1;33' "Remote $prefix with URL $url already exists, skipping."
     fi
   else
     git remote add $prefix $url
-    echo "Added remote $prefix with URL $url"
+    colorize '1;33' "Added remote $prefix with URL $url"
   fi
 }
 
 # Prompt user to find the latest tags or enter manually
-read -p "Do you want to find the latest tags automatically? (yes/no): " find_latest_tags
+read -p "$(colorize '1;34' 'Do you want to find the latest tags automatically? (yes/no): ')" find_latest_tags
+find_latest_tags=${find_latest_tags:-yes}
+
+case $find_latest_tags in
+  [Yy]* | [Yy][Ee][Ss]*) find_latest_tags="yes" ;;
+  [Nn]* | [Nn][Oo]*) find_latest_tags="no" ;;
+  *) find_latest_tags="yes" ;;
+esac
 
 declare -A tags
 
 if [ "$find_latest_tags" == "no" ]; then
   # Prompt for tags with examples
-  read -p "Enter WAIPIO tag (e.g., LA.VENDOR.1.0.r1-25500-WAIPIO.QSSI14.0): " WAIPIO
-  tags["WAIPIO"]=${AUDIO:-LA.VENDOR.1.0.r1-25500-WAIPIO.QSSI14.0}
+  read -p "$(colorize '1;34' 'Enter WAIPIO tag (e.g., LA.VENDOR.1.0.r1-25500-WAIPIO.QSSI14.0): ')" WAIPIO
+  tags["WAIPIO"]=${WAIPIO:-LA.VENDOR.1.0.r1-25500-WAIPIO.QSSI14.0}
 
-  read -p "Enter CAMERA tag (e.g., CAMERA.LA.2.0.r1-11800-WAIPIO.0): " CAMERA
+  read -p "$(colorize '1;34' 'Enter CAMERA tag (e.g., CAMERA.LA.2.0.r1-11800-WAIPIO.0): ')" CAMERA
   tags["CAMERA"]=${CAMERA:-CAMERA.LA.2.0.r1-11800-WAIPIO.0}
 
-  read -p "Enter DISPLAY tag (e.g., DISPLAY.LA.2.0.r1-13000-WAIPIO.0): " DISPLAY
+  read -p "$(colorize '1;34' 'Enter DISPLAY tag (e.g., DISPLAY.LA.2.0.r1-13000-WAIPIO.0): ')" DISPLAY
   tags["DISPLAY"]=${DISPLAY:-DISPLAY.LA.2.0.r1-13000-WAIPIO.0}
 
-  read -p "Enter VIDEO tag (e.g., VIDEO.LA.2.0.r1-10200-WAIPIO.0): " VIDEO
+  read -p "$(colorize '1;34' 'Enter VIDEO tag (e.g., VIDEO.LA.2.0.r1-10200-WAIPIO.0): ')" VIDEO
   tags["VIDEO"]=${VIDEO:-VIDEO.LA.2.0.r1-10200-WAIPIO.0}
 else
   tags=(
@@ -102,20 +114,20 @@ process_repo() {
 
     # Skip if no valid tag is found
     if [ -z "$latest_tag" ]; then
-      echo "No valid tags found for $prefix with prefix ${tags[$tag_prefix]} containing 'WAIPIO'"
+      colorize '1;31' "No valid tags found for $prefix with prefix ${tags[$tag_prefix]} containing 'WAIPIO'"
       return
     fi
   else
     latest_tag=${tags[$tag_prefix]}
   fi
 
-  echo "Using tag $latest_tag for $prefix"
+  colorize '1;32' "Using tag $latest_tag for $prefix"
 
   if [ -d "$prefix" ]; then
-    echo "Directory $prefix exists. Using merge method."
+    colorize '1;33' "Directory $prefix exists. Using merge method."
     git pull -s subtree -Xsubtree=$prefix $url $latest_tag --log
   else
-    echo "Directory $prefix does not exist. Using import method."
+    colorize '1;33' "Directory $prefix does not exist. Using import method."
     git subtree add --prefix=$prefix $url $latest_tag -m "$prefix: Import from $latest_tag"
   fi
 }
